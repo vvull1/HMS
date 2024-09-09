@@ -1,0 +1,252 @@
+﻿@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Areas/Patient/Views/Shared/_PatientLayout.cshtml";
+}
+
+<div class="col-sm-12 col-xl-6">
+    <div class="bg-light rounded h-100 p-4">
+        <h6 class="mb-4">Manage Patient</h6>
+        <div class="mb-3">
+            <label>Name</label>
+            <span style="color:red">*</span>
+            <input type="text" id="txtname" class="form-control" autocomplete="off" />
+            <span id="name" style="color:red; display:none;">This Field is Required.</span>
+        </div>
+        <div class="mb-3">
+            <label>Address</label>
+            <span style="color:red">*</span>
+            <textarea type="text" id="txtaddress" class="form-control" autocomplete="off"></textarea>
+            <span id="address" style="color:red; display:none;">This Field is Required.</span>
+        </div>
+        <div class="mb-3">
+            <label>Email:</label>
+            <span style="color:red">*</span>
+            <input type="email" id="txtemail" class="form-control" autocomplete="off" />
+            <span id="email" style="color:red; display:none;">This Field is Required.</span>
+        </div>
+        <div class="mb-3">
+            <label>Phone Number</label>
+            <span style="color:red">*</span>
+            <input type="text" id="txtpno" class="form-control" autocomplete="off" />
+            <span id="phoneno" style="color:red; display:none;">This Field is Required.</span>
+        </div>
+        <button type="button" id="btnSave" class="btn btn-primary">Save</button>
+        <button type="button" id="btnCancel" class="btn btn-danger">Cancel</button>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12 btn-heading-title">
+                    <div class="rowCount" id="rowCount1"></div>
+                </div>
+
+                <div id="gridContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var baseUrl = 'http://localhost:5089/api/ManagePatientAPI/';
+    var PatientId = 0;
+    $(() => {
+        loadDataTable();
+    });
+
+    function loadDataTable() {
+        var PUrl = baseUrl + 'Get';
+        $.ajax({
+            type: "GET",
+            contentType: "application/json; charset=utf-8",
+            url: PUrl,
+            success: function (data) {
+                $("#gridContainer").dxDataGrid({
+                    dataSource: data,
+                    columns: [
+                        {
+                            dataField: 'edit', caption: 'Edit', alignment: 'center', dataType: 'string', format: '', type: 'buttons',
+                            cellTemplate: function (container, options) {
+                                jQuery('<span class="bx bx-wallet" style:"cursor:pointer">').text('').on('dxclick',
+                                    function () {
+                                        edit(options.data);
+                                    }).appendTo(container);
+                            }
+                        },
+                        {
+                            dataField: 'remove', caption: 'De-Active', alignment: 'center', dataType: 'string', format: '', type: 'buttons',
+                            cellTemplate: function (container, options) {
+                                jQuery('<span class="bx bx-message-square-edit" style:"cursor:pointer">').text('').on('dxclick',
+                                    function () {
+                                        deleteRec(options.data);
+                                    }).appendTo(container);
+                            }
+                        },
+                        { dataField: 'name', caption: 'Name', alignment: 'center', dataType: 'string', format: '' },
+                        { dataField: 'address', caption: 'Address', alignment: 'center', dataType: 'string', format: '' },
+                        { dataField: 'email', caption: 'Email', alignment: 'center', dataType: 'string', format: '' },
+                        { dataField: 'contactNo', caption: 'Mobile No.', alignment: 'center', dataType: 'string', format: '' },
+                    ],
+                    columnsAutoWidth: true,
+                    wordWrapEnabled: true,
+                    rowAlternationEnabled: true,
+                    showBorders: true,
+                    grouping: { autoExpandAll: true },
+                    paging: { pageSize: 10 },
+                    pager: { showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100] },
+                    headerFilter: { visible: true },
+                    filterRow: { visible: true, applyFilter: "auto" },
+                    allowColumnResizing: true,
+                    groupPanel: { visible: true },
+                    searchPanel: { visible: true, width: 240, placeholder: "Search..." },
+                    // export: {
+                    //     enabled: true,
+                    //     fileName: "User Details",
+                    //     allowExportSelectedData: true,
+                    //     customizeExcelCell: options => {
+                    //         if (options.gridCell.rowType === "header") {
+                    //             // options.backgroundColor = _dxGridHeaderBGColor;
+                    //             // options.font.color = _dxGridHeaderColor;
+                    //         }
+                    //     }
+                    // },
+                    // selection: { mode: "multiple" },
+                    allowColumnReordering: true,
+                    columnFixing: { enabled: false },
+                    columnChooser: {
+                        enabled: true,
+                        mode: "select",
+                        allowSearch: true
+                    },
+                    onExporting: function (e) {
+                        e.component.beginUpdate();
+                        e.component.columnOption("Button", "visible", false);
+                        e.component.columnOption("Add", "visible", false);
+                    },
+                    onExported: function (e) {
+                        e.component.columnOption("Button", "visible", true);
+                        e.component.columnOption("Add", "visible", true);
+                        e.component.endUpdate();
+                    },
+                    onCellPrepared: function (e) {
+                        if (e.rowType === "header") {
+                            e.cellElement.css("text-align", "center");
+                            e.cellElement.css("font-weight", "bold");
+                        }
+                        if (e.rowType === "group") {
+                            e.cellElement.css("text-align", "center");
+                        }
+                    },
+                    onContentReady(e) {
+                        jQuery('#rowCount1').html('Total Records : ' + jQuery("#gridContainer").dxDataGrid('instance').totalCount());
+                    }
+                }).dxDataGrid('instance');
+            }
+
+        });
+    }
+
+    $('#btnSave').click(() => {
+        var name = $("#txtname").val() ? $("#txtname").val() : '';
+        var address = $("#txtaddress").val() ? $("#txtaddress").val() : '';
+        var email = $("#txtemail").val() ? $("#txtemail").val() : '';
+        var phoneno = $("#txtpno").val() ? $("#txtpno").val() : '';
+        //var authId = $("#authId").val();
+        var isValid = true;
+
+        if (!name) {
+            $("#name").show();
+            isValid = false;
+        }
+        else {
+            $("#name").hide();
+        }
+        if (!address) {
+            $("#address").show();
+            isValid = false;
+        }
+        else {
+            $("#address").hide();
+        }
+        if (!email) {
+            $("#email").show();
+            isValid = false;
+        }
+        else {
+            $("#email").hide();
+        }
+        if (!phoneno) {
+            $("#phoneno").show();
+            isValid = false;
+        }
+        else {
+            $("#phoneno").hide();
+        }
+        if (!isValid)
+            return false;
+
+        var obj = {};
+        if (PatientId == 0) {
+            obj = { Name: name, Address: address, Email: email, ContactNo: phoneno, createdBy: "Vinuthna", updatedBy: "" }
+            url = baseUrl + 'Create'
+        }
+        else {
+            obj = { id: PatientId, Name: name, Address: address, Email: email, ContactNo: phoneno, createdBy: "Vinuthna", updatedBy: "" }
+            url = baseUrl + 'Update'
+        }
+        console.log(obj);
+        $.ajax({
+            url: url,
+            type: PatientId == 0 ? "POST" : "PUT",
+            data: JSON.stringify(obj),
+            dataType: "json",
+            contentType: 'application/json',
+            success: function (data) {
+                alert(data.message);
+                $("#txtname").val('');
+                $("#txtaddress").val('');
+                $("#txtemail").val('');
+                $("#txtpno").val('');
+                loadDataTable();
+            },
+            error: function (xhr) {
+            }
+        });
+    });
+
+    function edit(data) {
+        PatientId = data.id;
+        $.ajax({
+            url: baseUrl + 'GetById/' + PatientId,
+            type: 'GET',
+            dataType: 'json',
+            success: function (response) {
+                var data = response.data;
+                $('#txtname').val(data.name);
+                $('#txtaddress').val(data.address);
+                $('#txtemail').val(data.email);
+                $('#txtpno').val(data.contactNo);
+                loadDataTable();
+            },
+            error: function () { }
+        });
+    }
+
+    function deleteRec(data) {
+        if (confirm("Are you sure to remove this record?")) {
+            PatientId = data.id;
+            url = baseUrl + 'Delete/' + PatientId
+            $.ajax({
+                url: url,
+                type: "DELETE",
+                dataType: "json",
+                contentType: 'application/json',
+                success: function (data) {
+                    alert(data.message);
+                    loadDataTable();
+                },
+                error: function (xhr) {
+                }
+            });
+        }
+    }
+</script>
+
